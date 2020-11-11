@@ -1,0 +1,253 @@
+import 'package:flutter/material.dart';
+
+final Color darkBlue = Color.fromARGB(255, 18, 32, 47);
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: ThemeData.dark().copyWith(scaffoldBackgroundColor: darkBlue),
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(
+          child: MyWidget(),
+        ),
+      ),
+    );
+  }
+}
+
+class MyWidget extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return 
+      
+Column(
+  children: <Widget>[
+   
+ Row(
+    children: <Widget>[
+  Expanded(
+      child: 
+    Card(
+      color: Colors.purple,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+         Padding(
+           padding: EdgeInsets.all(16.0),
+              ),//padding
+         IconButton(
+            icon: Icon(Icons.arrow_back),
+            color: Colors.white,
+            onPressed: () {},
+          ),//back arrow
+         SizedBox(width:50, height: 70),
+         Text('App Bar Replacement'),
+         SizedBox(width:50, height:70),
+         IconButton(
+            icon: Icon(Icons.help),
+            color: Colors.white,
+            onPressed: () {},
+          ),//question
+        ]//widget
+      ),//row
+     ),//purple card
+    ),//expanded
+   ]),//appbarreplacement
+   
+Row( // for team 2 button
+   
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: <Widget>[
+    
+    SizedBox(width:10, height: 60),    
+    Expanded(
+     child: 
+     SizedBox(
+      height: 40,
+      child: 
+      RaisedButton(
+             onPressed: (){},
+             child: Text('Team 1 Color'),
+            color: Colors.grey[450],
+              ),//team 1 button 
+     ),//sized box
+   ),
+   SizedBox(width:10, height: 40),  
+    
+  ]
+ ),// second row
+    
+Expanded(
+  child: GridView.count(
+  primary: false,
+  padding: const EdgeInsets.all(10),
+  crossAxisSpacing: 10,
+  mainAxisSpacing: 10,
+  crossAxisCount: 3,
+  children: <Widget>[
+    
+    Container(
+      child: 
+      RaisedButton(
+     onPressed: (){},
+     color: Colors.red,
+      child: Padding(
+     padding: EdgeInsets.all(16.0),  
+  ),//padding
+  ),//raised button
+ ),//container
+    
+    Container(
+      child: 
+      RaisedButton(
+     onPressed: (){},
+     color: Colors.orange,
+      child: Padding(
+     padding: EdgeInsets.all(16.0),  
+  ),//padding
+  ),//raised button
+ ),//container
+    
+    Container(
+      child: 
+      RaisedButton(
+     onPressed: (){},
+     color: Colors.amber,
+      child: Padding(
+     padding: EdgeInsets.all(16.0),  
+  ),//padding
+  ),//raised button
+ ),//container
+    
+    Container(
+      child: 
+      RaisedButton(
+     onPressed: (){},
+     color: Colors.green,
+      child: Padding(
+     padding: EdgeInsets.all(16.0),  
+  ),//padding
+  ),//raised button
+ ),//container
+    
+    Container(
+      child: 
+      RaisedButton(
+     onPressed: (){},
+     color: Colors.blue,
+      child: Padding(
+     padding: EdgeInsets.all(16.0),  
+  ),//padding
+  ),//raised button
+ ),//container
+    
+    Container(
+      child: 
+      RaisedButton(
+     onPressed: (){},
+     color: Colors.indigo,
+      child: Padding(
+     padding: EdgeInsets.all(16.0),  
+  ),//padding
+  ),//raised button
+ ),//container
+    
+    Container(
+      child: 
+      RaisedButton(
+     onPressed: (){},
+     color: Colors.purple,
+      child: Padding(
+     padding: EdgeInsets.all(16.0),  
+  ),//padding
+  ),//raised button
+ ),//container
+    
+    Container(
+      child: 
+      RaisedButton(
+     onPressed: (){},
+     color: Colors.black,
+      child: Padding(
+     padding: EdgeInsets.all(16.0),  
+  ),//padding
+  ),//raised button
+ ),//container
+    
+    Container(
+      child: 
+      RaisedButton(
+     onPressed: (){},
+     color: Colors.white,
+      child: Padding(
+     padding: EdgeInsets.all(16.0),  
+  ),//padding
+  ),//raised button
+ ),//container
+    
+ 
+   
+  ], //widget for the row
+),
+
+),//expanded for the row
+    
+    
+ Row( // for team 2 button
+   
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: <Widget>[
+    
+    SizedBox(width:10, height: 60),    
+    Expanded(
+     child: 
+     SizedBox(
+      height: 40,
+      child: 
+      RaisedButton(
+             onPressed: (){},
+             child: Text('Team 2 Color'),
+              ),//team 1 button 
+     ),//sized box
+   ),
+   SizedBox(width:10, height: 40),  
+    
+  ]
+ ),//row
+
+    
+ Row( // for team 2 button
+   
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: <Widget>[
+    
+    SizedBox(width:10, height: 60),    
+    Expanded(
+     child: 
+     SizedBox(
+      height: 40,
+      child: 
+      RaisedButton(
+             onPressed: (){},
+             child: Text('test?'),
+              ),//team 1 button 
+     ),//sized box
+   ),
+   SizedBox(width:10, height: 40),  
+    
+  ]
+ ),//row
+
+  ],//widget
+); //big ol column
+    
+    
+
+  }
+}
