@@ -1,0 +1,346 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+String formatTime(int milliseconds) {
+  var secs = milliseconds ~/ 1000;
+  var hours = (secs ~/ 3600).toString().padLeft(2, '0');
+  var minutes = ((secs % 3600) ~/ 60).toString().padLeft(2, '0');
+  var seconds = (secs % 60).toString().padLeft(2, '0');
+
+  return "$hours:$minutes:$seconds";
+}
+
+class Event {
+  String player;
+  String event;
+  dynamic time;
+  Event(this.time, this.event, this.player);
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Spectracker Demo',
+      home: StopwatchPage(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class StopwatchPage extends StatefulWidget {
+  @override
+  _StopwatchPageState createState() => _StopwatchPageState();
+}
+
+class _StopwatchPageState extends State<StopwatchPage> {
+  late Stopwatch _stopwatch;
+  late Timer _timer;
+
+  //Define possibilities for the eventFinder to match to
+  List<String> possiblePlayers = ['Home', 'Away'];
+  List<String> possibleEvents = ['Throw In', 'Goal'];
+
+  var possOccur = Map<String, int>();
+  bool homeP = true;
+  String currentP = "start Game";
+
+  void changeP() {
+    if (homeP) {
+      homeP = false;
+      //print(homeP);
+      currentP = 'Away';
+    } else {
+      homeP = true;
+      //print(homeP);
+      currentP = 'Home';
+    }
+    print(homeP);
+  }
+
+  bool enabled = false;
+
+  void startGame() {
+    Stopwatch().start();
+    setState(() {
+      enabled = true;
+    });
+    String event = 'Game Start';
+    String player = 'CREATOR';
+    int time = _stopwatch.elapsedMilliseconds;
+    new Event(time, event, player);
+    times.add(time);
+    events.add(event);
+    players.add(player);
+    handleStartStop.call();
+    changeP.call(); 
+  }
+
+  //makes a list of all each event and how many times it occurs
+  void statsList() {
+    for (var element in possOccur.entries) {
+      print(element);
+    }
+  }
+
+//makes map values for each possible event kind (with team and type), calls the event finder with each possible thing as the input.
+  void possiblePairs() {
+    int numPossPlayers = possiblePlayers.length;
+    int numPossEvents = possibleEvents.length;
+    for (var i = 0; i < numPossPlayers; i++) {
+      for (var j = 0; j < numPossEvents; j++) {
+        possOccur['${possiblePlayers[i]} : ${possibleEvents[j]}'] = 0;
+        eventFinder.call('${possiblePlayers[i]}', '${possibleEvents[j]}');
+        //print('____');
+      }
+    }
+  }
+
+//event finder inputs a player:event and looks through all the other things
+  void eventFinder(playerDesired, eventDesired) {
+    int allEvents = events
+        .length; //how many pairs of events and players there are in the log list
+    for (var n = 0; n < allEvents; n++) {
+      //cycles through events in the log list
+      if ("${players[n]} : ${events[n]}"
+          .contains("$playerDesired : $eventDesired")) {
+        possOccur.update(
+            "$playerDesired : $eventDesired", (dynamic val) => ++val);
+        //print(possOccur);
+      } else {}
+    }
+  }
+
+  List<String> players = [];
+  List<int> times = [];
+  List<String> events = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _stopwatch = Stopwatch();
+    _timer = new Timer.periodic(new Duration(milliseconds: 30), (timer) {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  void handleStartStop() {
+    if (_stopwatch.isRunning) {
+      _stopwatch.stop();
+    } else {
+      _stopwatch.start();
+    }
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var throwIn;
+    if (enabled) {
+      throwIn = () {
+        String event = 'Throw In';
+        String player = '$currentP';
+        int time = _stopwatch.elapsedMilliseconds;
+        new Event(time, event, player);
+        times.add(time);
+        events.add(event);
+        players.add(player);
+      };
+    }
+
+    var goal;
+    if (enabled) {
+      goal = () {
+        String event = 'Goal';
+        String player = "$currentP";
+        int time = _stopwatch.elapsedMilliseconds;
+        new Event(time, event, player);
+        times.add(time);
+        events.add(event);
+        players.add(player);
+      };
+    }
+
+    var endGame;
+    if (enabled) {
+      endGame = () {
+        String event = 'Game End';
+        String player = 'CREATOR';
+        int time = _stopwatch.elapsedMilliseconds;
+
+        new Event(time, event, player);
+        times.add(time);
+        events.add(event);
+        players.add(player);
+        handleStartStop.call();
+      };
+    }
+
+    void printItemX(itemX) {
+      String niceTime = "${formatTime(times[itemX])}";
+      //String ztime = "${times[itemX].substring(11,19)}";
+      //var ptime = DateTime.parse(times[itemX]); // from string to DateTime.
+      print("$niceTime: ${events[itemX]}, ${players[itemX]}");
+    }
+
+    //void pTime(DateTime.()){}
+
+    var printLog;
+    if (enabled) {
+      printLog = () {
+        int listLength = events.length;
+        for (var n = 0; n < listLength; n++) {
+          printItemX(n);
+        }
+      };
+    }
+
+    var makeStats;
+    if (enabled) {
+      makeStats = () {
+        possiblePairs.call();
+        print('____________');
+        statsList.call();
+      };
+    }
+
+    var gameElapsed;
+    if (enabled) {
+      gameElapsed = () {
+        //var first = DateTime.parse(times.last);
+        int last = times.last;
+        // var difference = last.difference(first);
+        var difference = formatTime(-1 * (0 - last));
+        print('Game Length: $difference');
+      };
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Spectracker Demo')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Card(child: Text('$homeP, $currentP')),
+            Text(formatTime(_stopwatch.elapsedMilliseconds),
+                style: TextStyle(fontSize: 48.0)),
+            SizedBox(width: 20, height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ElevatedButton(
+                  child: Text('Start'),
+                  onPressed: (_stopwatch.isRunning ? endGame : startGame),
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.green), //start
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+                SizedBox(width: 20, height: 20),
+                ElevatedButton(
+                  child: Text('Finish!'),
+                  onPressed: endGame,
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.red[400]),
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+              ],
+            ),
+            SizedBox(width: 20, height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                SizedBox(width: 20, height: 20),
+                ElevatedButton(
+                  child: Text('change possession'),
+                  onPressed: changeP,
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.purple), //throw in
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+                SizedBox(width: 20, height: 20),
+                ElevatedButton(
+                  child: Text('Throw in'),
+                  onPressed: throwIn,
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.blue), //throw in
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+                SizedBox(width: 20, height: 20),
+                ElevatedButton(
+                  onPressed: goal, //the variable
+                  child: Text('goal'),
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.blue), //goal
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+              ],
+            ),
+            SizedBox(width: 20, height: 40),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ElevatedButton(
+                  child: Text('print log'),
+                  onPressed: printLog,
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.amber[300]), //print
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+                SizedBox(width: 20, height: 20),
+                ElevatedButton(
+                  child: Text('print stats'),
+                  onPressed: makeStats,
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.amber[300]), //print
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+              ],
+            ),
+            SizedBox(width: 20, height: 20),
+            ElevatedButton(
+              child: Text('game duration'),
+              onPressed: gameElapsed,
+              style: ButtonStyle(
+                  backgroundColor:
+                      MaterialStateProperty.all(Colors.grey), //start
+                  padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                  textStyle:
+                      MaterialStateProperty.all(TextStyle(fontSize: 15))),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
