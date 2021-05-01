@@ -1,0 +1,491 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+String formatTime(int milliseconds) {
+  var secs = milliseconds ~/ 1000;
+  var hours = (secs ~/ 3600).toString().padLeft(2, '0');
+  var minutes = ((secs % 3600) ~/ 60).toString().padLeft(2, '0');
+  var seconds = (secs % 60).toString().padLeft(2, '0');
+
+  return "$hours:$minutes:$seconds";
+}
+
+class Event {
+  String player;
+  String event;
+  dynamic time;
+  Event(this.time, this.event, this.player);
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Spectracker Demo',
+      home: StopwatchPage(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class StopwatchPage extends StatefulWidget {
+  @override
+  _StopwatchPageState createState() => _StopwatchPageState();
+}
+
+class _StopwatchPageState extends State<StopwatchPage> {
+  late Stopwatch _stopwatch;
+  late Timer _timer;
+
+  //Define possibilities for the eventFinder to match to
+  List<String> possiblePlayers = ['Home', 'Away'];
+  List<String> possibleEvents = ['Throw In', 'Goal'];
+
+  //Actual Events that happen
+  List<String> players = [];
+  List<int> times = [];
+  List<String> events = [];
+  
+  //Possession Events (only possessions!)
+  List<String> possessionEventsPlayers = []; 
+  List<int> possessionEventsTimes = []; 
+  List<String> possessionEventsEvents = [];
+  
+  //Away and home possessions (all segments to sum)
+  List<int> awayPossessions = []; 
+  List<int> homePossessions = []; 
+  
+  
+  //Sums of away possession time and home possession time
+  var sumA = 0;
+  var sumH = 0;   
+ 
+  
+  
+  //there is one entry for each kind of event (combination of event and player), and then the number of times it happens 
+  var timesEachEventHappened = Map<String, int>();
+  
+  bool homeP = true;
+  String currentP = "start Game";
+
+ 
+  //Find possessions events within the big event list and add those events to the possessionEvents lists 
+  void findPossessions(){
+  for (var n = 0; n < (events.length); n++){
+    String eventN = events[n];
+    if('$eventN'.contains('Gain Possession')) {
+     possessionEventsPlayers.add(players[n]); 
+     possessionEventsTimes.add(times[n]); 
+     possessionEventsEvents.add(events[n]); 
+    }
+    //I'm adding this else so that there's a final element with the PossessionEventsEvents list, so that when we hit this element on the list in addPossSegmentToHomeOrAway we can not go any more. 
+    else if ('$eventN'.contains('Game End')){
+     possessionEventsPlayers.add(players[n]); 
+     possessionEventsTimes.add(times[n]); 
+     possessionEventsEvents.add(events[n]); 
+    }
+  } 
+    findPossessionPercentages.call(); 
+  }
+  
+  
+    // for each event in actual event list, if it's Away Gain Possession add to away lists, otherwise if it's Home Gain Possession add to home lists 
+    void addPossSegmentToHomeOrAway(){
+      for (var n = 0; n < (possessionEventsEvents.length); n++){
+        //print('Currently inspecting: ${possessionEventsPlayers[n]}:${possessionEventsEvents[n]}'); 
+        String playerAndEvent = '${possessionEventsPlayers[n]}:${possessionEventsEvents[n]}'; 
+        
+        if(playerAndEvent.contains ('Away:Gain Possession')) {
+        int awayGains = possessionEventsTimes[n]; 
+        int homeGains = possessionEventsTimes[n+1]; 
+        int awayPoss = homeGains-awayGains; 
+        awayPossessions.add(awayPoss); 
+        }
+          
+        else if ('$playerAndEvent'.contains('Home:Gain Possession')) {
+        int homeGains = possessionEventsTimes[n]; 
+        int awayGains = possessionEventsTimes[n+1]; 
+        int homePoss = awayGains-homeGains; 
+        homePossessions.add(homePoss);
+        } //close for else if
+        
+        else if (playerAndEvent.contains ('CREATOR:Game End')){
+          //print('Hit the end!'); 
+        }
+      } //close for for loop that cycles through how ever many possession events there are 
+      
+        /*print both the home possession segments and away possession segments (for debugging) 
+        print('Home: $homePossessions'); 
+        print('Away: $awayPossessions'); 
+        */
+      
+        for (var i = 0; i < homePossessions.length; i++) {
+            sumH += homePossessions[i]; 
+          }
+        print('Home Sum: ${formatTime(sumH)}');
+      
+        for (var i = 0; i < awayPossessions.length; i++) {
+            sumA += awayPossessions[i]; 
+          }
+        print('Away Sum: ${formatTime(sumA)}'); 
+        } //close for add home or away 
+    
+    
+
+
+  //find posseession percentages first calls the add segment to home or away, which for each actual event sees if its a possession, and then if its a possession add
+    
+  void findPossessionPercentages(){
+    addPossSegmentToHomeOrAway.call(); 
+    int gameLength = times.last; //should be the same as possessionEventsTimes for the record
+    double percentHome = double.parse(((sumH/gameLength)*100).toStringAsFixed(2)); 
+    double percentAway = double.parse(((sumA/gameLength)*100).toStringAsFixed(2)); 
+    String printableLength = formatTime(times.last); 
+    print('game length: $printableLength, percent home: $percentHome, percent away: $percentAway'); 
+  }
+  
+  /*
+  
+  void onPressedGetStats() {
+    findPossessions.call();
+    findPossessionPercentages.call();
+  } */
+
+  
+
+  //makes a list of all each event and how many times it occurs
+  void statsList() {
+    for (var element in timesEachEventHappened.entries) {
+      int substringLength = (element.toString().length) - 1; //this is so that it doesn't print MapEntry(ThrowIn:Home) : 0 kindof deal. 
+      print(element.toString().substring(9, substringLength));
+    }
+  }
+
+    
+    //event finder inputs a player:event and looks through all the other things
+  void eventFinder(playerDesired, eventDesired) {
+    int allEvents = events
+        .length; //how many pairs of events and players there are in the log list
+    for (var n = 0; n < allEvents; n++) {
+      //cycles through events in the log list
+      if ("${players[n]} : ${events[n]}"
+          .contains("$playerDesired : $eventDesired")) {
+        timesEachEventHappened.update(
+            "$playerDesired : $eventDesired", (dynamic val) => ++val);
+        //print(possOccur);
+      } else {}
+    }
+  }
+    
+  //makes map values for each possible event kind (with team and type), calls the event finder with each possible thing as the input.
+  void possiblePairs() {
+    int numPossPlayers = possiblePlayers.length;
+    int numPossEvents = possibleEvents.length;
+    for (var i = 0; i < numPossPlayers; i++) {
+      for (var j = 0; j < numPossEvents; j++) {
+        timesEachEventHappened['${possiblePlayers[i]} : ${possibleEvents[j]}'] = 0;
+        eventFinder.call('${possiblePlayers[i]}', '${possibleEvents[j]}');
+        //print('____');
+      }
+    }
+  }
+    
+    
+  // ________________________
+  
+  
+   void changeP() {
+    String player = 'CREATOR';
+    int time = _stopwatch.elapsedMilliseconds;
+    String event = 'Change P- this should be overriden';
+    if (homeP) {
+      event = 'Gain Possession';
+      player = 'Away';
+      homeP = false;
+      currentP = 'Away';
+    } else {
+      event = 'Gain Possession';
+      player = 'Home';
+      homeP = true;
+      currentP = 'Home';
+    }
+    new Event(time, event, player);
+    times.add(time);
+    events.add(event);
+    players.add(player);
+  }
+  
+  bool enabled = false;
+
+  //show the live score
+  int homeGoals = 0;
+  int awayGoals = 0;
+  void increaseScore() {
+    if (homeP) {
+      homeGoals++;
+    } else {
+      awayGoals++;
+    }
+  }
+
+  
+  @override
+  void initState() {
+    super.initState();
+    _stopwatch = Stopwatch();
+    _timer = new Timer.periodic(new Duration(milliseconds: 30), (timer) {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  void handleStartStop() {
+    if (_stopwatch.isRunning) {
+      _stopwatch.stop();
+    } else {
+      _stopwatch.start();
+    }
+    setState(() {});
+  }
+    
+    void startGame() {
+    Stopwatch().start();
+    setState(() {
+      enabled = true;
+    });
+    String event = 'Game Start';
+    String player = 'CREATOR';
+    int time = _stopwatch.elapsedMilliseconds;
+    new Event(time, event, player);
+    times.add(time);
+    events.add(event);
+    players.add(player);
+    handleStartStop.call();
+    changeP.call();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var throwIn;
+    if (enabled) {
+      throwIn = () {
+        String event = 'Throw In';
+        String player = '$currentP';
+        int time = _stopwatch.elapsedMilliseconds;
+        new Event(time, event, player);
+        times.add(time);
+        events.add(event);
+        players.add(player);
+      };
+    }
+
+    var goal;
+    if (enabled) {
+      goal = () {
+        String event = 'Goal';
+        String player = "$currentP";
+        int time = _stopwatch.elapsedMilliseconds;
+        new Event(time, event, player);
+        times.add(time);
+        events.add(event);
+        players.add(player);
+        increaseScore.call();
+      };
+    }
+
+    var endGame;
+    if (enabled) {
+      endGame = () {
+        changeP.call();
+        String event = 'Game End';
+        String player = 'CREATOR';
+        int time = _stopwatch.elapsedMilliseconds;
+
+        new Event(time, event, player);
+        times.add(time);
+        events.add(event);
+        players.add(player);
+        handleStartStop.call();
+        enabled = false;
+      };
+    }
+
+    void printItemX(itemX) {
+      String niceTime = "${formatTime(times[itemX])}";
+      //String ztime = "${times[itemX].substring(11,19)}";
+      //var ptime = DateTime.parse(times[itemX]); // from string to DateTime.
+      print("$niceTime: ${events[itemX]}, ${players[itemX]}");
+    }
+
+    //void pTime(DateTime.()){}
+
+    var printLog;
+    //  if (enabled) {
+    printLog = () {
+      int listLength = events.length;
+      for (var n = 0; n < listLength; n++) {
+        printItemX(n);
+      }
+    };
+    // }
+
+    var makeStats;
+    // if (enabled) {
+    makeStats = () {
+      possiblePairs.call();
+      print('____________');
+      statsList.call();
+    };
+    // }
+
+    var gameElapsed;
+    //  if (enabled) {
+    gameElapsed = () {
+      //var first = DateTime.parse(times.last);
+      int last = times.last;
+      // var difference = last.difference(first);
+      var difference = formatTime(-1 * (0 - last));
+      print('Game Length: $difference');
+    };
+    //  }
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Spectracker Demo')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Card(child: Text('Home goals $homeGoals: Away Goals $awayGoals')),
+            Card(child: Text('$currentP posession')),
+            Text(formatTime(_stopwatch.elapsedMilliseconds),
+                style: TextStyle(fontSize: 48.0)),
+            SizedBox(width: 20, height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ElevatedButton(
+                  child: Text('Start'),
+                  onPressed: (_stopwatch.isRunning ? endGame : startGame),
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.green), //start
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+                SizedBox(width: 20, height: 20),
+                ElevatedButton(
+                  child: Text('Finish!'),
+                  onPressed: endGame,
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.red[400]),
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+              ],
+            ),
+            SizedBox(width: 20, height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                SizedBox(width: 20, height: 20),
+                ElevatedButton(
+                  child: Text('change possession'),
+                  onPressed: changeP,
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.purple), //throw in
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+                SizedBox(width: 20, height: 20),
+                ElevatedButton(
+                  child: Text('Throw in'),
+                  onPressed: throwIn,
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.blue), //throw in
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+                SizedBox(width: 20, height: 20),
+                ElevatedButton(
+                  onPressed: goal, //the variable
+                  child: Text('goal'),
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.blue), //goal
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+              ],
+            ),
+            SizedBox(width: 20, height: 40),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ElevatedButton(
+                  child: Text('print log'),
+                  onPressed: printLog,
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.amber[300]), //print
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+                SizedBox(width: 20, height: 20),
+                ElevatedButton(
+                  child: Text('print stats'),
+                  onPressed: makeStats,
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.amber[300]), //print
+                      padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                      textStyle:
+                          MaterialStateProperty.all(TextStyle(fontSize: 15))),
+                ),
+              ],
+            ),
+            SizedBox(width: 20, height: 20),
+            ElevatedButton(
+              child: Text('game duration'),
+              onPressed: gameElapsed,
+              style: ButtonStyle(
+                  backgroundColor:
+                      MaterialStateProperty.all(Colors.grey), //start
+                  padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                  textStyle:
+                      MaterialStateProperty.all(TextStyle(fontSize: 15))),
+            ),
+            SizedBox(width: 20, height: 20),
+            ElevatedButton(
+              child: Text('calculate possession'),
+              onPressed: findPossessions,
+              style: ButtonStyle(
+                  backgroundColor:
+                      MaterialStateProperty.all(Colors.grey), //start
+                  padding: MaterialStateProperty.all(EdgeInsets.all(20)),
+                  textStyle:
+                      MaterialStateProperty.all(TextStyle(fontSize: 15))),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
